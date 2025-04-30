@@ -103,24 +103,6 @@ rbind(Potrerillo_doy,
 
 ```
 
-PCA?
-
-```{r}
-rbind(Potrerillo_doy,
-                     Doima_doy,
-                     Primavera_doy,
-                     Gaia_doy) |>
-    pivot_longer(!c("freq-min",
-                  "freq-max",
-                  "site"),
-               names_to = "Day of year",
-               values_to = "Z") |> 
-  mutate(site_code = substr(site,1,3),
-         site_day = paste0(site_code,"_",`Day of year`)) 
-
-```
-
-
 ## Species-specific acoustic activity
 
 Turdus leucomelas
@@ -134,7 +116,7 @@ turdus |>
                names_to = "date",
                values_to = "detection") |> 
   mutate(day_samp = as.Date.character(date, format = "%Y/%m/%d")) |> 
-  drop_na(detection) |> View()
+  drop_na(detection) |> summary()
   ggplot(aes(x = day_samp, y = detection)) +
     geom_point() +
     facet_wrap(~site)
