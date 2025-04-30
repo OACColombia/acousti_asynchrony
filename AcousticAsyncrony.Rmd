@@ -108,18 +108,52 @@ rbind(Potrerillo_doy,
 Turdus leucomelas
 
 ```{r Turdus}
-turdus <- read_csv("data/occupancy-Turdus_leucomelas-43.csv")
+
+# have a sequence of weeks to recreate the dates
+weekly_dates <- seq.Date(from = as.Date("2022-06-06"), to = as.Date("2023-09-09"), by = "week")
+
+# Create a reference dataframe with Time.t and dates
+time_reference <- data.frame(
+  Time.t = 23:(23 + length(weekly_dates) - 1),
+  date_filled = weekly_dates
+)
+
+
+turdus <- read_csv("data/occupancy-Turdus_leucomelas-43.csv") |>
+  filter(site != "Unibague") |>
+  mutate(site = ifelse(site == "DOIMA", "Doima (615m)",
+                ifelse(site == "GAIA", "Gaia (1378m)",
+                ifelse(site == "POTRERILLO", "Potrerillo (440m)",
+                ifelse(site == "PRIMAVERA", "Primavera (995m)",
+                       "OTHER")))))
+
 
 turdus |>
-  filter(site != "Unibague") |>
   pivot_longer(!c(site, siteId),
                names_to = "date",
                values_to = "detection") |> 
-  mutate(day_samp = as.Date.character(date, format = "%Y/%m/%d")) |> 
-  drop_na(detection) |> summary()
-  ggplot(aes(x = day_samp, y = detection)) +
+  mutate(day_samp = as.Date.character(date, format = "%Y/%m/%d"),
+         Year = year(day_samp),
+         Month = month(day_samp),
+         Week = week(day_samp),
+         Time.t = case_when(Year == 2022 ~ Week,
+                            Year > 2022 ~ Week+(52*(Year-2022)))) |>
+  drop_na(detection) |>
+  left_join(time_reference, by = "Time.t") |>
+  group_by(site, date_filled) |>
+  summarise(n_recordings = n(),
+            n_detections = sum(detection),
+            activity = (n_detections/n_recordings)*100) |>
+  ggplot(aes(x = date_filled, y = activity)) +
     geom_point() +
-    facet_wrap(~site)
+    facet_wrap(~factor(site, levels = c("Potrerillo (440m)",
+                                      "Doima (615m)",
+                                      "Primavera (995m)",
+                                      "Gaia (1378m)")),
+               ncol = 1) +
+  labs(x = "Date",
+       y = "Weekly activity") +
+  theme_classic()
 
 ```
 
